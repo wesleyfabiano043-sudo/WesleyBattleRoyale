@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Wesley Battle Royale — Protótipo</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101820;font-family:Arial,sans-serif;color:white;touch-action:none}
+#game{position:fixed;inset:0}canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}
+.pill{background:#07131dcc;border:1px solid #ffffff55;border-radius:12px;padding:8px 11px;font-weight:700}
+#top{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+#healthWrap{position:absolute;left:12px;top:66px;width:150px}
+#health{height:10px;background:#ffffff44;border-radius:8px;overflow:hidden;margin-top:5px}#healthFill{height:100%;width:100%;background:#38e078}
+#help{position:absolute;top:112px;left:12px;font-size:12px;color:#fff;background:#07131d99;padding:7px 9px;border-radius:8px;max-width:190px}
+#bottom{position:absolute;bottom:16px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:end}
+#joy{width:116px;height:116px;border-radius:50%;background:#ffffff22;border:2px solid #ffffff66;position:relative;pointer-events:auto;touch-action:none}
+#knob{position:absolute;width:48px;height:48px;border-radius:50%;background:#ffffff88;border:2px solid white;left:32px;top:32px}
+.actions{display:flex;gap:10px;align-items:end;pointer-events:auto}
+.action{border:2px solid #ffffff99;border-radius:50%;width:66px;height:66px;background:#d73527dd;color:white;font-weight:900;font-size:12px}
+#jump{background:#2279cddd;width:58px;height:58px}
+#aim{background:#c58a1ddd;width:58px;height:58px}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(#07131dcc,#07131df2);z-index:5;text-align:center;padding:24px}
+.panel{max-width:420px;background:#142633;border:1px solid #ffffff33;border-radius:20px;padding:25px;box-shadow:0 15px 60px #0008}
+h1{margin:0 0 8px;font-size:30px;color:#ffc64a}p{line-height:1.45;color:#d8e4ea}
+#start{background:#ffb52e;color:#17212a;border:0;border-radius:12px;padding:15px 25px;font-size:17px;font-weight:900;margin-top:10px}
+#message{position:absolute;top:42%;width:100%;text-align:center;font-size:25px;font-weight:900;color:#ffdb75}
+@media(min-width:800px){#joy{width:130px;height:130px}#knob{left:38px;top:38px}}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="hud">
+ <div id="top"><div class="pill">WESLEY BATTLE ROYALE</div><div class="pill" id="count">SOBREVIVENTES: 6</div></div>
+ <div id="healthWrap" class="pill">VIDA <span id="hpText">100</span><div id="health"><div id="healthFill"></div></div></div>
+ <div id="help">Arraste o controle para andar. Toque em ATIRAR para eliminar os bots.</div>
+ <div id="message"></div>
+ <div id="bottom"><div id="joy"><div id="knob"></div></div><div class="actions"><button class="action" id="aim">MIRA</button><button class="action" id="jump">PULAR</button><button class="action" id="fire">ATIRAR</button></div></div>
+</div>
+<div id="overlay"><div class="panel"><h1>WESLEY BATTLE ROYALE</h1><p>Protótipo 3D para Android<br>Sobreviva na ilha, encontre os inimigos e seja o último de pé.</p><p><b>Controles:</b> joystick para mover • MIRA para alinhar • ATIRAR para disparar • PULAR para saltar</p><button id="start">ENTRAR NA PARTIDA</button><p style="font-size:11px">Protótipo demonstrativo — não é o Free Fire oficial e ainda não tem multiplayer online.</p></div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+const root=document.getElementById('game');
+if(!window.THREE){root.innerHTML='<div style="padding:30px">Não foi possível carregar o motor 3D. Abra com internet ativa.</div>';return;}
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x8ac7e8);scene.fog=new THREE.Fog(0x8ac7e8,35,100);
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,200);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;root.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xdff4ff,0x596044,2));
+const sun=new THREE.DirectionalLight(0xffffff,2.2);sun.position.set(-15,30,15);sun.castShadow=true;scene.add(sun);
+const mat=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:.9});
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(180,180),mat(0x5c9b54));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const water=new THREE.Mesh(new THREE.PlaneGeometry(300,300),mat(0x2588b4));water.rotation.x=-Math.PI/2;water.position.y=-.35;scene.add(water);
+function box(x,y,z,sx,sy,sz,color){let m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat(color));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
+function tree(x,z){let t=new THREE.Mesh(new THREE.CylinderGeometry(.18,.25,1.8,7),mat(0x76502d));t.position.set(x,.9,z);scene.add(t);let l=new THREE.Mesh(new THREE.ConeGeometry(1.25,3,8),mat(0x236b3a));l.position.set(x,3,z);l.castShadow=true;scene.add(l)}
+for(let i=0;i<65;i++){let a=Math.random()*Math.PI*2,r=13+Math.random()*62;tree(Math.cos(a)*r,Math.sin(a)*r)}
+// buildings and cover
+for(let i=0;i<8;i++){let x=(Math.random()-.5)*48,z=(Math.random()-.5)*48;box(x,1.2,z,5,2.4,4,0xc9b58b);box(x,2.55,z,5.3,.35,4.3,0x754a37);box(x-1.2,.9,z+2.03,.8,1.2,.08,0x5c9fbc)}
+for(let i=0;i<14;i++){let x=(Math.random()-.5)*60,z=(Math.random()-.5)*60;box(x,.45,z,2,.9,1.4,0x6d716b)}
+// player character
+function person(color){let g=new THREE.Group();let body=new THREE.Mesh(new THREE.CapsuleGeometry(.42,.8,4,8),mat(color));body.position.y=1.15;body.castShadow=true;g.add(body);let head=new THREE.Mesh(new THREE.SphereGeometry(.28,12,10),mat(0xc58c68));head.position.y=1.95;g.add(head);let gun=box(0,1.25,-.62,.18,.18,1.05,0x20252b);g.add(gun);scene.add(g);return g}
+const player=person(0x2363c7);player.position.set(0,0,8);
+let bots=[];for(let i=0;i<5;i++){let b=person([0xb83b32,0xd39a28,0x713c9e,0x368f69,0x555c65][i]);let a=i/5*Math.PI*2;b.position.set(Math.cos(a)*17,0,Math.sin(a)*17);bots.push({g:b,hp:100,alive:true,cd:1+Math.random()*2})}
+let hp=100,kills=0,started=false,gameOver=false,aiming=false,jumpV=0,fireCD=0;let move={x:0,y:0};
+const hpText=document.getElementById('hpText'),fill=document.getElementById('healthFill'),count=document.getElementById('count'),msg=document.getElementById('message');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function damage(v){hp=Math.max(0,hp-v);hpText.textContent=hp;fill.style.width=hp+'%';if(hp<=0){gameOver=true;msg.textContent='VOCÊ FOI ELIMINADO';setTimeout(showEnd,900)}}
+function showEnd(){document.getElementById('overlay').style.display='flex';document.querySelector('.panel').innerHTML='<h1>'+(hp>0?'VITÓRIA!':'FIM DE JOGO')+'</h1><p>Eliminações: '+kills+'<br>Toque para jogar novamente.</p><button id="start">JOGAR NOVAMENTE</button>';document.getElementById('start').onclick=()=>location.reload()}
+function shoot(){if(!started||gameOver||fireCD>0)return;fireCD=.32;let target=null,best=aiming?Math.PI/3:Math.PI/5;for(let b of bots){if(!b.alive)continue;let d=b.g.position.clone().sub(player.position);let dist=d.length();d.y=0;d.normalize();let forward=new THREE.Vector3(0,0,-1).applyQuaternion(player.quaternion);let ang=Math.acos(clamp(forward.dot(d),-1,1));if(ang<best&&dist<34){best=ang;target=b}}if(target){target.hp-=50;if(target.hp<=0){target.alive=false;scene.remove(target.g);kills++;count.textContent='SOBREVIVENTES: '+(5-kills+1)}}}
+document.getElementById('fire').addEventListener('pointerdown',e=>{e.preventDefault();shoot()});
+document.getElementById('aim').onclick=()=>{aiming=!aiming;document.getElementById('aim').style.filter=aiming?'brightness(1.5)':'none';camera.fov=aiming?48:65;camera.updateProjectionMatrix()};
+document.getElementById('jump').onclick=()=>{if(player.position.y<.05)jumpV=7};
+const joy=document.getElementById('joy'),knob=document.getElementById('knob');let joyId=null;
+joy.addEventListener('pointerdown',e=>{joyId=e.pointerId;joy.setPointerCapture(joyId);joyMove(e)});
+joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)joyMove(e)});
+function joyMove(e){let r=joy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),len=Math.hypot(dx,dy),max=42;if(len>max){dx=dx/len*max;dy=dy/len*max}move.x=dx/max;move.y=dy/max;knob.style.transform=`translate(${dx}px,${dy}px)`}
+function joyEnd(e){if(e.pointerId===joyId){joyId=null;move={x:0,y:0};knob.style.transform='translate(0,0)'}}
+joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
+document.getElementById('start').onclick=()=>{started=true;document.getElementById('overlay').style.display='none'};
+let last=performance.now(),zone=60,zoneTimer=0;
+function loop(now){requestAnimationFrame(loop);let dt=Math.min((now-last)/1000,.04);last=now;if(started&&!gameOver){
+ fireCD=Math.max(0,fireCD-dt);
+ let speed=move.y<-.15?7:5;let forward=new THREE.Vector3(-move.x,0,-move.y);if(forward.lengthSq()>.02){forward.normalize();player.position.addScaledVector(forward,speed*dt);player.rotation.y=Math.atan2(-forward.x,-forward.z)}
+ jumpV-=18*dt;player.position.y=Math.max(0,player.position.y+jumpV*dt);if(player.position.y===0)jumpV=0;
+ player.position.x=clamp(player.position.x,-zone,zone);player.position.z=clamp(player.position.z,-zone,zone);
+ // bots pursue and occasionally damage
+ for(let b of bots){if(!b.alive)continue;let d=player.position.clone().sub(b.g.position);d.y=0;let dist=d.length();if(dist>2.5){d.normalize();b.g.position.addScaledVector(d,1.7*dt);b.g.rotation.y=Math.atan2(-d.x,-d.z)}b.cd-=dt;if(dist<16&&b.cd<=0){damage(4);b.cd=1.5+Math.random()*1.2}}
+ zoneTimer+=dt;if(zoneTimer>12){zoneTimer=0;zone=Math.max(13,zone-3);if(Math.abs(player.position.x)>zone||Math.abs(player.position.z)>zone)damage(5)}
+ }
+ let camOffset=new THREE.Vector3(0,5.2,9.5).applyQuaternion(player.quaternion);camera.position.copy(player.position).add(camOffset);camera.lookAt(player.position.x,player.position.y+1.2,player.position.z);
+ renderer.render(scene,camera)}
+requestAnimationFrame(loop);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+})();
+</script>
+</body></html>
